@@ -1081,8 +1081,6 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
 	    Obj *y = CADDR(expr);
 	    return comp(x, env, comp(y, env, cons(OP_EQ, code)));
 	}
-//	if (CDR(expr)->type != TCELL)
-//	    error("argument must be a list");
 	// calling function
 	return complis(CDR(expr),
 		       env,
