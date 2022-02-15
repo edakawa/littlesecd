@@ -1,4 +1,4 @@
-// secd.c -- Little SECD Machine
+// littlesecd.c -- Little SECD Machine
 //
 // This program made based on minilisp (nogc version) and micro scheme.
 //
