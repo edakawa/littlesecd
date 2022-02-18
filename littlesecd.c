@@ -117,6 +117,7 @@ static Obj *Opcodes;
 #define OP_ATOM intern("atom")
 #define OP_EQ   intern("eq")
 #define OP_STOP intern("stop")
+#define OP_PLN  intern("pln")
 
 // Special Forms
 #define SF_QUOTE  intern("quote")
@@ -140,6 +141,7 @@ static Obj *Opcodes;
 #define PRIM_NEQ     intern("=")
 #define PRIM_ATOM    intern("atom")
 #define PRIM_EQ      intern("eq")
+#define PRIM_PRINTLN intern("println")
 
 //  Special Symbols
 #define ATOM_T    intern("t")
@@ -732,6 +734,13 @@ static void op_stop(Obj *s, Obj *e, Obj *c, Obj *d) {
     putchar('\n');
 }
 
+// (v . S) E (pln . C) D => (v . S) E C D
+static void op_pln(Obj *s, Obj *e, Obj *c, Obj *d) {
+    print(CAR(s));
+    putchar('\n');
+    vm(s, e, c, d);
+}
+
 // -----------------------------------------------------------------------------
 // 6. Compiler
 // -----------------------------------------------------------------------------
@@ -1081,6 +1090,13 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
 	    Obj *y = CADDR(expr);
 	    return comp(x, env, comp(y, env, cons(OP_EQ, code)));
 	}
+        if (PRIM_PRINTLN == head) {
+            // (println x)
+            if (len != 2)
+                error("Malformed println");
+            Obj *x = CADR(expr);
+            return comp(x, env, cons(OP_PLN, code));
+        }
 	// calling function
 	return complis(CDR(expr),
 		       env,
@@ -1138,6 +1154,7 @@ static void define_operations(void) {
     add_operation(OP_ATOM, op_atom);
     add_operation(OP_EQ,   op_eq);
     add_operation(OP_STOP, op_stop);
+    add_operation(OP_PLN,  op_pln);
 }
 
 static void add_variable(Obj *sym, Obj *val) {
