@@ -142,6 +142,7 @@ static Obj *Opcodes;
 #define PRIM_ATOM    intern("atom")
 #define PRIM_EQ      intern("eq")
 #define PRIM_PRINTLN intern("println")
+#define PRIM_LIST intern("list")
 
 //  Special Symbols
 #define ATOM_T    intern("t")
@@ -391,6 +392,17 @@ static int list_length(Obj *list) {
 	list = CDR(list);
 	len++;
     }
+}
+
+static Obj *reverse(Obj *p) {
+    Obj *ret = Nil;
+    while (p != Nil) {
+        Obj *head = p;
+        p = CDR(p);
+        CDR(head) = ret;
+        ret = head;
+    }
+    return ret;
 }
 
 // -----------------------------------------------------------------------------
@@ -1096,6 +1108,15 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
                 error("Malformed println");
             Obj *x = CADR(expr);
             return comp(x, env, cons(OP_PLN, code));
+        }
+        if (PRIM_LIST == head) {
+            // (list expr1 expr2 ...)
+            if (len == 1)
+                return cons(OP_LDG, cons(ATOM_NIL, code));
+            Obj *ret = cons(OP_ARGS, cons(make_int(len-1), code));
+            for (Obj *e = reverse(CDR(expr)); e != Nil; e = CDR(e))
+                ret = comp(CAR(e), env, ret);
+            return ret;
         }
 	// calling function
 	return complis(CDR(expr),
