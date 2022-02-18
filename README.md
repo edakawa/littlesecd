@@ -23,7 +23,7 @@ show its result.
 
     $ ./littlesecd
     > (+ 1 2)
-    ;; compiled: (ldc 1 ldc 2 add stop)
+      ;; compiled: (ldc 1 ldc 2 add stop)
     3
     >
 
