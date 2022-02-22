@@ -50,11 +50,20 @@ LittleSECD reads expression from standard input, then compiled it, and show its 
           expr))
     or
     
-    > (macroexpand (or nil nil 1))
-    (my-let G__0 nil (if G__0 G__0 (or nil 1)))
+    > (my-let x 3 (+ x x))
+    6
+    
+    > (or nil nil 3)
+    3
     
     > (macroexpand (my-let G__0 nil (if G__0 G__0 (or nil 1))))
     ((lambda (G__0) (if G__0 G__0 (or nil 1))) nil)
+    
+    > (disassemble (my-let x 3 (+ x x)))
+    (ldc 3 args 1 ldf (ld (0 . 0) ld (0 . 0) add rtn) app stop)
+    
+    > (macroexpand (or nil nil 1))
+    (my-let G__0 nil (if G__0 G__0 (or nil 1)))
     
     > (disassemble ((lambda (G__0) (if G__0 G__0 (or (+ 3 4)))) (+ 1 2)))
     (ldc 1 ldc 2 add args 1 ldf (ld (0 . 0) sel (ld (0 . 0) join) (ldc 3 ldc 4 add join) rtn) app stop)
