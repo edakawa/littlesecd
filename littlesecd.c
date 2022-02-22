@@ -601,7 +601,7 @@ static void op_sel(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *cf = CADR(c);               // cf
     Obj *dump = cons(CDDR(c), d);    // (C . D)
     Obj *stack = CDR(s);             // S
-    if (v != Nil && v != ATOM_NIL)   // v != ATOM_NIL is e contain ((nil x)) as nil constant
+    if (v != Nil && v != ATOM_NIL)
 	vm(stack, e, ct, dump);
     else
 	vm(stack, e, cf, dump);
