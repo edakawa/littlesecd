@@ -274,10 +274,10 @@ run macro12 1 "(define list (lambda (a . b) (cons a b)))
                (or 1 nil nil)"
 
 run macro13 6 "(define list (lambda (a . b) (cons a b)))
-               (defmacro let1 (var val . body)
+               (defmacro my-let (var val . body)
                  (cons (cons 'lambda (cons (list var) body))
                        (list val)))
-               (let1 x 3 (+ x x))"
+               (my-let x 3 (+ x x))"
 
 run macro14 8192 "(define list (lambda (a . b) (cons a b)))
                   (defmacro progn (expr . rest) (list (cons 'lambda (cons (quote ()) (cons expr rest)))))
@@ -292,25 +292,25 @@ run macro15 3628800 "(define list (lambda (a . b) (cons a b)))
                      (fact 10)"
 
 run macro16 11 "(define list (lambda (x . y) (cons x y)))
-                (defmacro let1 (var val . body)
+                (defmacro my-let (var val . body)
                   (cons (cons 'lambda (cons (list var) body))
                 	(list val)))
                 (defmacro or (expr . rest)
                   (if rest
-                      (let1 var (gensym)
-                            (list 'let1 var expr
+                      (my-let var (gensym)
+                            (list 'my-let var expr
                                   (list 'if var var (cons 'or rest))))
                     expr))
                     (or nil nil 11)"
 
 run macro17 '()' "(define list (lambda (x . y) (cons x y)))
-                  (defmacro let1 (var val . body)
+                  (defmacro my-let (var val . body)
                     (cons (cons 'lambda (cons (list var) body))
                   	(list val)))
                   (defmacro or (expr . rest)
                     (if rest
-                        (let1 var (gensym)
-                              (list 'let1 var expr
+                        (my-let var (gensym)
+                              (list 'my-let var expr
                                     (list 'if var var (cons 'or rest))))
                       expr))
                   (or nil nil nil)"
@@ -319,4 +319,37 @@ run macro18 5 "(define list (lambda (x . y) (cons x y)))
                (defmacro progn (expr . rest)
                  (list (cons 'lambda (cons (quote ()) (cons expr rest)))))
                (progn 1 2 3 4 5)"
+
+run macro19 6 "(define list (lambda (x . y) (cons x y)))
+               (defmacro my-let (var val . body)
+                 (cons (cons 'lambda (cons (list var) body))
+                       (list val)))
+               (my-let x 3 (+ x x))"
+
+run macro20 6 "(define list (lambda (x . y) (cons x y)))
+               (defmacro my-let (var val . body)
+                 (cons (cons 'lambda (cons (list var) body))
+                       (list val)))
+               ((lambda (x) (my-let x 3 (+ x x))) 8192)"
+
+run macro21 4 "(define list (lambda (x . y) (cons x y)))
+               (defmacro my-let (var val . body)
+                 (cons (cons 'lambda (cons (list var) body))
+                       (list val)))
+               ((lambda (y) (my-let x 3 (+ x y))) 1)"
+
+run macro22 6 "(define list (lambda (x . y) (cons x y)))
+               (defmacro my-let (var val . body)
+                 (cons (cons 'lambda (cons (list var) body))
+                       (list val)))
+               (define x 8192)
+               (my-let x 3 (+ x x))"
+
+run macro23 9 "(define list (lambda (x . y) (cons x y)))
+               (defmacro my-let (var val . body)
+                 (cons (cons 'lambda (cons (list var) body))
+                       (list val)))
+               (define y 6)
+               (my-let x 3 (+ x y))"
+
 
