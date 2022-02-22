@@ -33,7 +33,7 @@ LittleSECD reads expression from standard input, then compiled it, and show its 
     list
     
     > (disassemble list)
-    (ld (0 . 0) ld (0 . -2) cons rtn)
+    (ldf (ld (0 . 0) ld (0 . -2) cons rtn))
     
     > (defmacro my-let (var val . body)
         (cons (cons 'lambda (cons (list var) body)) (list val)))
@@ -81,7 +81,7 @@ LittleSECD reads expression from standard input, then compiled it, and show its 
     (ldc 10 args 1 ldg fact app stop)
     
     > (disassemble fact)
-    (ld (0 . 0) ldc 1 neq sel (ldc 1 join) (ld (0 . 0) ld (0 . 0) ldc 1 sub args 1 ldg fact app mul join) rtn)
+    (ldf (ld (0 . 0) ldc 1 neq sel (ldc 1 join) (ld (0 . 0) ld (0 . 0) ldc 1 sub args 1 ldg fact app mul join) rtn))
     
     > (quit)
     $
