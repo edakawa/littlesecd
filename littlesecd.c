@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 // -----------------------------------------------------------------------------
 // 1. Lisp Objects
@@ -44,6 +45,7 @@ enum {
     TDOT,
     TCPAREN,
     TCLOSURE,
+    TMACRO,
 };
 
 struct Obj;
@@ -81,6 +83,7 @@ static Obj *True;
 static Obj *Dot;
 static Obj *Cparen;
 static Obj *Closure;
+static Obj *Macro;
 
 // The list containing all symbols. Such data structure is traditionally called
 // the "obarray", but I avoid using it as a variable name as this is not an
@@ -89,60 +92,69 @@ static Obj *Symbols;
 static Obj *Globals;
 static Obj *Opcodes;
 
+// This variable contains last evaluted value of expression.
+static Obj *Result;
+
 // SECD Machine Operators
-#define OP_LD   intern("ld")
-#define OP_LDC  intern("ldc")
-#define OP_LDG  intern("ldg")
-#define OP_LDF  intern("ldf")
-#define OP_ARGS intern("args")
-#define OP_APP  intern("app")
-#define OP_RTN  intern("rtn")
-#define OP_DUM  intern("dum")
-#define OP_RAP  intern("rap")
-#define OP_SEL  intern("sel")
-#define OP_JOIN intern("join")
-#define OP_POP  intern("pop")
-#define OP_DEF  intern("def")
-#define OP_ADD  intern("add")
-#define OP_SUB  intern("sub")
-#define OP_MUL  intern("mul")
-#define OP_DIV  intern("div")
-#define OP_MOD  intern("mod")
-#define OP_CONS intern("cons")
-#define OP_CAR  intern("car")
-#define OP_CDR  intern("cdr")
-#define OP_LT   intern("lt")
-#define OP_LE   intern("le")
-#define OP_NEQ  intern("neq")
-#define OP_ATOM intern("atom")
-#define OP_EQ   intern("eq")
-#define OP_STOP intern("stop")
-#define OP_PLN  intern("pln")
+#define OP_LD    intern("ld")
+#define OP_LDC   intern("ldc")
+#define OP_LDG   intern("ldg")
+#define OP_LDF   intern("ldf")
+#define OP_LDM   intern("ldm")
+#define OP_ARGS  intern("args")
+#define OP_APP   intern("app")
+#define OP_RTN   intern("rtn")
+#define OP_MAPP  intern("mapp")
+#define OP_DUM   intern("dum")
+#define OP_RAP   intern("rap")
+#define OP_SEL   intern("sel")
+#define OP_JOIN  intern("join")
+#define OP_POP   intern("pop")
+#define OP_DEF   intern("def")
+#define OP_ADD   intern("add")
+#define OP_SUB   intern("sub")
+#define OP_MUL   intern("mul")
+#define OP_DIV   intern("div")
+#define OP_MOD   intern("mod")
+#define OP_CONS  intern("cons")
+#define OP_CAR   intern("car")
+#define OP_CDR   intern("cdr")
+#define OP_LT    intern("lt")
+#define OP_LE    intern("le")
+#define OP_NEQ   intern("neq")
+#define OP_ATOM  intern("atom")
+#define OP_EQ    intern("eq")
+#define OP_STOP  intern("stop")
+#define OP_PLN   intern("pln")
 
 // Special Forms
-#define SF_QUOTE  intern("quote")
-#define SF_DEFINE intern("define")
-#define SF_IF     intern("if")
-#define SF_LAMBDA intern("lambda")
-#define SF_LET    intern("let")
-#define SF_LETREC intern("letrec")
+#define SF_QUOTE    intern("quote")
+#define SF_DEFINE   intern("define")
+#define SF_IF       intern("if")
+#define SF_LAMBDA   intern("lambda")
+#define SF_LET      intern("let")
+#define SF_LETREC   intern("letrec")
+#define SF_DEFMACRO intern("defmacro")
 
 // Primitive Functions
-#define PRIM_CONS    intern("cons")
-#define PRIM_CAR     intern("car")
-#define PRIM_CDR     intern("cdr")
-#define PRIM_ADD     intern("+")
-#define PRIM_SUB     intern("-")
-#define PRIM_MUL     intern("*")
-#define PRIM_DIV     intern("/")
-#define PRIM_MOD     intern("%")
-#define PRIM_LT      intern("<")
-#define PRIM_LE      intern("<=")
-#define PRIM_NEQ     intern("=")
-#define PRIM_ATOM    intern("atom")
-#define PRIM_EQ      intern("eq")
-#define PRIM_PRINTLN intern("println")
-#define PRIM_LIST intern("list")
+#define PRIM_CONS        intern("cons")
+#define PRIM_CAR         intern("car")
+#define PRIM_CDR         intern("cdr")
+#define PRIM_ADD         intern("+")
+#define PRIM_SUB         intern("-")
+#define PRIM_MUL         intern("*")
+#define PRIM_DIV         intern("/")
+#define PRIM_MOD         intern("%")
+#define PRIM_LT          intern("<")
+#define PRIM_LE          intern("<=")
+#define PRIM_NEQ         intern("=")
+#define PRIM_ATOM        intern("atom")
+#define PRIM_EQ          intern("eq")
+#define PRIM_PRINTLN     intern("println")
+#define PRIM_GENSYM      intern("gensym")
+#define PRIM_MACROEXPAND intern("macroexpand")
+#define PRIM_DISASSEMBLE intern("disassemble")
+#define PRIM_QUIT        intern("quit")
 
 //  Special Symbols
 #define ATOM_T    intern("t")
@@ -155,10 +167,13 @@ static Obj *Opcodes;
 #define   CADR(x) ((Obj *)x)->cdr->car
 #define   CDAR(x) ((Obj *)x)->car->cdr
 #define   CDDR(x) ((Obj *)x)->cdr->cdr
+#define  CAADR(x) ((Obj *)x)->cdr->car->car
 #define  CADAR(x) ((Obj *)x)->car->cdr->car
 #define  CADDR(x) ((Obj *)x)->cdr->cdr->car
+#define  CDADR(x) ((Obj *)x)->cdr->car->cdr
 #define  CDDDR(x) ((Obj *)x)->cdr->cdr->cdr
 #define CADDAR(x) ((Obj *)x)->car->cdr->cdr->car
+#define CADADR(x) ((Obj *)x)->cdr->car->cdr->car
 #define CADDDR(x) ((Obj *)x)->cdr->cdr->cdr->car
 
 // -----------------------------------------------------------------------------
@@ -344,6 +359,10 @@ static void print(Obj *obj) {
 	    printf("<closure>");
 	    return;
 	}
+	if (CAR(obj)->type == TSPECIAL && CAR(obj) == Macro) {
+	    printf("<macro>");
+	    return;
+	}
         printf("(");
         for (;;) {
 	    print(CAR(obj));
@@ -356,6 +375,15 @@ static void print(Obj *obj) {
 		    print(obj->cdr);
 		else
 		    printf("<closure>");
+		break;
+            }
+            if (CDR(obj)->type != TCELL || (CADR(obj)->type == TSPECIAL &&
+	        CADR(obj) == Macro)) {
+                printf(" . ");
+		if (CDR(obj)->type != TCELL)
+		    print(obj->cdr);
+		else
+		    printf("<macro>");
 		break;
             }
             printf(" ");
@@ -371,7 +399,7 @@ static void print(Obj *obj) {
 	return;
     case TSPECIAL:
         if (obj == Nil)
-            printf("nil");
+            printf("()");
         else if (obj == True)
             printf("t");
         else
@@ -388,26 +416,24 @@ static int list_length(Obj *list) {
 	if (list == Nil)
 	    return len;
 	if (list->type != TCELL)
-	    error("list_length: cannot handle dotted list");
+            error("list_length: cannot handle dotted list");
 	list = CDR(list);
 	len++;
     }
 }
 
-static Obj *reverse(Obj *p) {
-    Obj *ret = Nil;
-    while (p != Nil) {
-        Obj *head = p;
-        p = CDR(p);
-        CDR(head) = ret;
-        ret = head;
-    }
-    return ret;
-}
-
 // -----------------------------------------------------------------------------
 // 4. VM
 // -----------------------------------------------------------------------------
+
+static Obj *find(Obj *sym) {
+    for (Obj *p = Globals; p != Nil; p = CDR(p)) {
+        Obj *bind = CAR(p);
+        if (sym == CAR(bind))
+            return bind;
+    }
+    return NULL;
+}
 
 static Obj *fetch(Obj *sym) {
     for (Obj *p = Opcodes; p != Nil; p = CDR(p)) {
@@ -474,15 +500,13 @@ static void op_ldc(Obj *s, Obj *e, Obj *c, Obj *d) {
 // S E (ldg sym . C) D => (v . S) E C D
 // v: global value of sym
 static void op_ldg(Obj *s, Obj *e, Obj *c, Obj *d) {
-    Obj *sym = CAR(c);                          // sym
-    for (Obj *cell = Globals; cell != Nil; cell = CDR(cell)) {
-	Obj *bind = CAR(cell);
-	if (sym == CAR(bind)) {
-	    Obj *code = CDR(c);                 // C
-	    Obj *stack = cons(CDR(bind), s);    // (v . S)
-	    vm(stack, e, code, d);
-	    return;
-	}
+    Obj *sym = CAR(c);                      // sym
+    Obj *bind = find(sym);
+    if (bind) {
+        Obj *code = CDR(c);                 // C
+        Obj *stack = cons(CDR(bind), s);    // (v . S)
+        vm(stack, e, code, d);
+        return;
     }
     error("Undefined symbol: %s", sym->name);
 }
@@ -492,6 +516,14 @@ static void op_ldf(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *closure = cons(Closure, cons(CAR(c), cons(e, Nil)));
     Obj *code = CDR(c);               // C
     Obj *stack = cons(closure, s);    // ((<closure> C' E) . S)
+    vm(stack, e, code, d);
+}
+
+// S E (ldm C' . C) D => ((<macro> C' E) . S) E C D
+static void op_ldm(Obj *s, Obj *e, Obj *c, Obj *d) {
+    Obj *macro = cons(Macro, cons(CAR(c), cons(e, Nil)));
+    Obj *code = CDR(c);             // C
+    Obj *stack = cons(macro, s);    // ((<macro> C' E) . S)
     vm(stack, e, code, d);
 }
 
@@ -513,8 +545,20 @@ static void op_args(Obj *s, Obj *e, Obj *c, Obj *d) {
 // ((<closure> C' E') v . S) E (app . C) D => Nil (v . E') C' (S E C . D)
 static void op_app(Obj *s, Obj *e, Obj *c, Obj *d) {
     if (CAR(s)->type != TCELL || CAAR(s)->type != TSPECIAL ||
-	CAAR(s)->subtype != TCLOSURE)
-	error("The head of a list must be a function");
+        CAAR(s)->subtype != TCLOSURE)
+        error("app: The head of a list mube be a function or macro");
+    Obj *cp = CADAR(s);                                // C'
+    Obj *dump = cons(CDDR(s), cons(e, cons(c, d)));    // (S E C . D)
+    Obj *env = cons(CADR(s), CADDAR(s));               // (v . E')
+    Obj *stack = Nil;                                  // Nil
+    vm(stack, env, cp, dump);
+}
+
+// wrong -> ((<macro> C' E') v . S) E (mapp . C) D => Nil (v . E') C' (S E C . D)
+static void op_mapp(Obj *s, Obj *e, Obj *c, Obj *d) {
+    if (CAR(s)->type != TCELL || CAAR(s)->type != TSPECIAL ||
+        CAAR(s)->subtype != TMACRO)
+        error("mapp: The head of a list mube be a function or macro");
     Obj *cp = CADAR(s);                                // C'
     Obj *dump = cons(CDDR(s), cons(e, cons(c, d)));    // (S E C . D)
     Obj *env = cons(CADR(s), CADDAR(s));               // (v . E')
@@ -557,7 +601,7 @@ static void op_sel(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *cf = CADR(c);               // cf
     Obj *dump = cons(CDDR(c), d);    // (C . D)
     Obj *stack = CDR(s);             // S
-    if (v != Nil)
+    if (v != Nil && v != ATOM_NIL)   // v != ATOM_NIL is e contain ((nil x)) as nil constant
 	vm(stack, e, ct, dump);
     else
 	vm(stack, e, cf, dump);
@@ -742,8 +786,7 @@ static void op_eq(Obj *s, Obj *e, Obj *c, Obj *d) {
 
 // (v . S) E (stop . C) D => print v then stop secd machine
 static void op_stop(Obj *s, Obj *e, Obj *c, Obj *d) {
-    print(CAR(s));
-    putchar('\n');
+    Result = CAR(s);
 }
 
 // (v . S) E (pln . C) D => (v . S) E C D
@@ -756,6 +799,11 @@ static void op_pln(Obj *s, Obj *e, Obj *c, Obj *d) {
 // -----------------------------------------------------------------------------
 // 6. Compiler
 // -----------------------------------------------------------------------------
+
+static bool is_macro(Obj *sym) {
+    Obj *bind = find(sym);
+    return (bind != NULL && CADR(bind) == Macro) ? true : false;
+}
 
 static Obj *position_var(Obj *sym, Obj *ls) {
     int i = 0;
@@ -800,8 +848,10 @@ static Obj *term_location(Obj *term, Obj *env, Obj *code) {
 
 static Obj *symbol_location(Obj *sym, Obj *env, Obj *code) {
     Obj *pos = location(sym, env);
-    return (pos == Nil) ? cons(OP_LDG, cons(sym, code)) :
-        cons(OP_LD, cons(pos, code));
+    if (pos == Nil)
+        return cons(OP_LDG, cons(sym, code));
+    else
+        return cons(OP_LD, cons(pos, code));
 }
 
 static Obj *complis(Obj *expr, Obj *env, Obj *code) {
@@ -809,6 +859,22 @@ static Obj *complis(Obj *expr, Obj *env, Obj *code) {
 	return code;
     else
 	return comp(CAR(expr), env, complis(CDR(expr), env, code));
+}
+
+static Obj *compmac(Obj *expr, Obj *code) {
+    if (expr == Nil)
+	return code;
+    else {
+        Obj *sym = CAR(expr);
+        return cons(OP_LDC, cons(sym, compmac(CDR(expr), code)));
+    }
+}
+
+static Obj *apply_macro(Obj *sym, Obj *expr) {
+    Obj *form = compmac(expr, cons(OP_ARGS, cons(length(expr),
+        cons(OP_LDG, cons(sym, cons(OP_MAPP, cons(OP_STOP, Nil)))))));
+    vm(Nil, Nil, form, Nil);
+    return Result;
 }
 
 static Obj *comp_body(Obj *body, Obj *env, Obj *code) {
@@ -820,7 +886,13 @@ static Obj *comp_body(Obj *body, Obj *env, Obj *code) {
 		    cons(OP_POP, comp_body(CDR(body), env, code)));
 }
 
+static Obj *compile(Obj *expr);
+
 static Obj *comp(Obj *expr, Obj *env, Obj *code) {
+    if (expr == True)
+        return cons(OP_LDG, cons(ATOM_T, code));
+    if (expr == Nil)
+        return cons(OP_LDG, cons(ATOM_NIL, code));
     int len;
     Obj *head;
     switch (expr->type) {
@@ -829,13 +901,13 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
     case TSYMBOL:
 	return symbol_location(expr, env, code);
     case TCELL:
-	len = list_length(expr);
+        len = list_length(expr);
 	head = CAR(expr);
 	if (SF_QUOTE == head) {
 	    // 'expr
 	    if (len != 2)
 		error("Malformed quote");
-	    return cons(OP_LDC, cons(CADR(expr), code));
+            return cons(OP_LDC, cons(CADR(expr), code));
 	}
 	if (SF_DEFINE == head) {
 	    // (define sym expr)
@@ -846,10 +918,9 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
 	    return comp(val, env, cons(OP_DEF, cons(sym, code)));
 	}
 	if (SF_IF == head) {
-	    // (if expr t-clause f-clause)
-	    if (len < 3 || len > 4)
+	    if (len < 3 || 4 < len)
 		error("Malformed if");
-	    Obj *t_clause, *f_clause;
+            Obj *t_clause, *f_clause;
 	    t_clause = comp(CADDR(expr), env, cons(OP_JOIN, Nil));
 	    if (CDDDR(expr) == Nil)
 		f_clause = cons(OP_LDG, cons(ATOM_NIL, cons(OP_JOIN, Nil)));
@@ -881,6 +952,8 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
 	    Obj *vars = Nil;
 	    Obj *exprs = Nil;
 	    for (Obj *obj = bind; obj != Nil; obj = CDR(obj)) {
+                if (CAR(obj)->type != TCELL)
+                    error("Malformed let");
 		Obj *v = CAAR(obj);
 		Obj *e = CDAR(obj);
 		if (v->type != TSYMBOL)
@@ -903,6 +976,8 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
 	    Obj *vars = Nil;
 	    Obj *exprs = Nil;
 	    for (Obj *obj = bind; obj != Nil; obj = CDR(obj)) {
+                if (CAR(obj)->type != TCELL)
+                    error("Malformed letrec");
 		Obj *v = CAAR(obj);
 		Obj *e = CDAR(obj);
 		if (v->type != TSYMBOL)
@@ -921,6 +996,18 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
 							 cons(OP_RTN, Nil)),
 						    cons(OP_RAP, code)))))));
 	}
+        if (SF_DEFMACRO == head) {
+            // (defmacro sym (args) body)
+            if (len < 3 || CADR(expr)->type != TSYMBOL ||
+                CDDDR(expr)->type != TCELL)
+                error("Malformed defmacro");
+            Obj *body = CDDDR(expr);
+            Obj *args = cons(CADDR(expr), env);
+            Obj *sym = CADR(expr);
+            Obj *ret = cons(OP_LDM,
+                        cons(comp(CAR(body), args, cons(OP_RTN, Nil)), cons(OP_DEF, cons(sym, code))));
+            return ret;
+        }
 	if (PRIM_CONS == head) {
 	    // (cons expr1 expr2)
 	    if (len != 3)
@@ -1109,25 +1196,61 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
             Obj *x = CADR(expr);
             return comp(x, env, cons(OP_PLN, code));
         }
-        if (PRIM_LIST == head) {
-            // (list expr1 expr2 ...)
-            if (len == 1)
-                return cons(OP_LDG, cons(ATOM_NIL, code));
-            Obj *ret = cons(OP_ARGS, cons(make_int(len-1), code));
-            for (Obj *e = reverse(CDR(expr)); e != Nil; e = CDR(e))
-                ret = comp(CAR(e), env, ret);
-            return ret;
+        if (PRIM_GENSYM == head) {
+            static int count = 0;
+            char buf[10];
+            snprintf(buf, sizeof(buf), "G__%d", count++);
+            return cons(OP_LDC, cons(make_symbol(buf), code));
         }
-	// calling function
-	return complis(CDR(expr),
-		       env,
-		       cons(OP_ARGS,
-			    cons(length(CDR(expr)),
-				 comp(head,
-				      env,
-				      cons(OP_APP, code)))));
+        if (PRIM_MACROEXPAND == head) {
+            // (macroexpand expr)
+            if (len != 2)
+                error("Malformed macroexpand");
+            Obj *ret = cons(OP_LDC, cons(CADR(expr), code));
+            if (CADR(expr)->type != TCELL || CAADR(expr)->type != TSYMBOL)
+                return ret;
+            Obj *sym = CAADR(expr);
+            Obj *bind = find(sym);
+            if (!bind || CADR(bind) != Macro)
+                return ret;
+            expr = CDADR(expr);
+            return cons(OP_LDC, cons(apply_macro(sym, expr), code));
+        }
+        if (PRIM_DISASSEMBLE == head) {
+            // (disassemble expr)
+            if (len != 2 || CDR(expr)->type != TCELL)
+                error("Malformed disassemble");
+            expr = CADR(expr);
+            if (expr->type == TSYMBOL) {
+                Obj *bind = find(expr);
+                if (!bind)
+                    error("The head of a list mube be a function or macro");
+                if (CDR(bind)->type == TCELL && CADR(bind) == Closure)
+                    return cons(OP_LDC, cons(cons(OP_LDF, cons(CADDR(bind), Nil)), code));
+                if (CDR(bind)->type == TCELL && CADR(bind) == Macro)
+                    return cons(OP_LDC, cons(cons(OP_LDM, cons(CADDR(bind), Nil)), code));
+            }
+            return cons(OP_LDC, cons(compile(expr), code));
+        }
+        if (PRIM_QUIT == head) {
+            if (len != 1)
+                error("Malformed quit");
+            exit(EXIT_SUCCESS);
+        }
+        if (is_macro(head))
+            // calling macro
+            return comp(apply_macro(head, CDR(expr)), env, code);
+        else
+            // calling function
+            return complis(CDR(expr),
+                           env,
+                           cons(OP_ARGS,
+                                cons(length(CDR(expr)),
+                                     comp(head,
+                                          env,
+                                          cons(OP_APP, code)))));
     default:
-	error("comp: Unkown error\n");
+	error("comp: Unkown error");
         // NOTREACHED
         return Nil;
     }
@@ -1152,9 +1275,11 @@ static void define_operations(void) {
     add_operation(OP_LDC,  op_ldc);
     add_operation(OP_LDG,  op_ldg);
     add_operation(OP_LDF,  op_ldf);
+    add_operation(OP_LDM,  op_ldm);
     add_operation(OP_ARGS, op_args);
     add_operation(OP_APP,  op_app);
     add_operation(OP_RTN,  op_rtn);
+    add_operation(OP_MAPP, op_mapp);
     add_operation(OP_DUM,  op_dum);
     add_operation(OP_RAP,  op_rap);
     add_operation(OP_SEL,  op_sel);
@@ -1187,26 +1312,29 @@ static void define_constants(void) {
     add_variable(ATOM_NIL, Nil);
 }
 
-#define VERBOSE_MODE 1
-
 int main(void) {
     Nil     = make_special(TNIL);
     Dot     = make_special(TDOT);
     Cparen  = make_special(TCPAREN);
     True    = make_special(TTRUE);
     Closure = make_special(TCLOSURE);
+    Macro   = make_special(TMACRO);
 
     Symbols = Nil;
     Globals = Nil;
     Opcodes = Nil;
 
+    Result = Nil;
+
     define_operations();
     define_constants();
+
+    printf("LittleSECD\n");
 
     Obj *s, *e, *c, *d;
     for (;;) {
 	s = e = d = Nil;
-	printf("> ");
+	printf("\n> ");
         Obj *expr = read();
         if (!expr)
             return 0;
@@ -1215,11 +1343,8 @@ int main(void) {
         if (expr == Dot)
             error("Stray dot");
 	c = compile(expr);
-	if (VERBOSE_MODE) {
-	    printf("  ;; compiled: ");
-	    print(c);
-	    putchar('\n');
-	}
 	vm(s, e, c, d);
+        print(Result);
+        putchar('\n');
     }
 }
