@@ -1005,7 +1005,8 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
             Obj *args = cons(CADDR(expr), env);
             Obj *sym = CADR(expr);
             Obj *ret = cons(OP_LDM,
-                        cons(comp(CAR(body), args, cons(OP_RTN, Nil)), cons(OP_DEF, cons(sym, code))));
+                cons(comp(CAR(body), args, cons(OP_RTN, Nil)),
+                cons(OP_DEF, cons(sym, code))));
             return ret;
         }
 	if (PRIM_CONS == head) {
@@ -1226,9 +1227,11 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
                 if (!bind)
                     error("The head of a list mube be a function or macro");
                 if (CDR(bind)->type == TCELL && CADR(bind) == Closure)
-                    return cons(OP_LDC, cons(cons(OP_LDF, cons(CADDR(bind), Nil)), code));
+                    return cons(OP_LDC, cons(cons(OP_LDF,
+                        cons(CADDR(bind), Nil)), code));
                 if (CDR(bind)->type == TCELL && CADR(bind) == Macro)
-                    return cons(OP_LDC, cons(cons(OP_LDM, cons(CADDR(bind), Nil)), code));
+                    return cons(OP_LDC, cons(cons(OP_LDM,
+                      cons(CADDR(bind), Nil)), code));
             }
             return cons(OP_LDC, cons(compile(expr), code));
         }
