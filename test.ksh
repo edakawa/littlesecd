@@ -13,7 +13,7 @@ function do_run {
         fail "$error"
     fi
 
-    result=$(echo "$3" | ./littlesecd 2> /dev/null | tail -2 | head -1)
+    result=$(echo "$3" | ./littlesecd 2> /dev/null | tail -3 | head -1 | sed 's/^> //')
     if [[ "$result" != "$2" ]]; then
         echo FAILED
         fail "$2 expected, but got $result"
@@ -108,7 +108,7 @@ run define 11 '(define x 7) (define x 11) x'
 run if   a "(if 0 'a)"
 run if   a "(if 1 'a)"
 run if   a "(if 'x 'a)"
-run if nil "(if nil 'a)"
+run if '()' "(if nil 'a)"
 run if   a "(if (if t t) 'a)"
 run if   a "(if (if t t) (if t 'a))"
 run if   a "(if 0 'a 'b)"
@@ -125,25 +125,25 @@ run =   t '(= -0 0)'
 run =   t '(= 0 -0)'
 run =   t '(= -0 -0)'
 run =   t '(= 1 1)'
-run = nil '(= 1 2)'
-run = nil '(= 2 1)'
+run = '()' '(= 1 2)'
+run = '()' '(= 2 1)'
 run =   t '(= 1 (+ 1 0))'
 run =   t '(= (+ 1 0) 1)'
-run = nil '(= 1 (+ 1 1))'
-run = nil '(= (+ 1 1) 1)'
+run = '()' '(= 1 (+ 1 1))'
+run = '()' '(= (+ 1 1) 1)'
 run =   t '(= (+ 1 1) (+ 1 1))'
-run = nil '(= (+ 1 1) (+ 2 2))'
+run = '()' '(= (+ 1 1) (+ 2 2))'
 
-run "<" nil '(< 0 0)'
-run "<" nil '(< -0 0)'
-run "<" nil '(< 0 -0)'
-run "<" nil '(< -0 -0)'
-run "<" nil '(< 1 0)'
+run "<" '()' '(< 0 0)'
+run "<" '()' '(< -0 0)'
+run "<" '()' '(< 0 -0)'
+run "<" '()' '(< -0 -0)'
+run "<" '()' '(< 1 0)'
 run "<"   t '(< 0 1)'
 run "<"   t '(< 1 (+ 1 1))'
-run "<" nil '(< (+ 1 1) 1)'
+run "<" '()' '(< (+ 1 1) 1)'
 run "<"   t '(< (+ 1 2) (+ 3 4))'
-run "<" nil '(< (+ 3 4) (+ 1 2))'
+run "<" '()' '(< (+ 3 4) (+ 1 2))'
 
 run "<="   t '(<= 0 0)'
 run "<="   t '(<= -0 0)'
@@ -151,22 +151,22 @@ run "<="   t '(<= 0 -0)'
 run "<="   t '(<= -0 -0)'
 run "<="   t '(<= 1 1)'
 run "<="   t '(<= 1 2)'
-run "<=" nil '(<= 2 1)'
-run "<=" nil '(<= (+ 1 1) 0)'
+run "<=" '()' '(<= 2 1)'
+run "<=" '()' '(<= (+ 1 1) 0)'
 run "<="   t '(<= (+ 1 1) 2)'
 run "<="   t '(<= (+ 1 1) 3)'
 run "<="   t '(<= 0 (+ 1 1))'
 run "<="   t '(<= 2 (+ 1 1))'
-run "<=" nil '(<= 3 (+ 1 1))'
+run "<=" '()' '(<= 3 (+ 1 1))'
 run "<="   t '(<= (+ 1 1) (+ 1 1))'
 run "<="   t '(<= (+ 1 1) (+ 1 2))'
-run "<=" nil '(<= (+ 1 2) (+ 1 1))'
+run "<=" '()' '(<= (+ 1 2) (+ 1 1))'
 
 # Atomic predicates
 run atom   t '(atom 1)'
 run atom   t "(atom 'a)"
-run atom nil "(atom '(1))"
-run atom nil "(atom '(1 2))"
+run atom '()' "(atom '(1))"
+run atom '()' "(atom '(1 2))"
 run atom   t '(atom (if t 1))'
 
 # Equality comparison
@@ -174,8 +174,8 @@ run eq   t '(eq 3 3)'
 run eq   t '(define x 3) (define y 3) (eq x y)'
 run eq   t '(define x 3) (define x 8) (eq x x)'
 run eq   t "(eq 'a 'a)"
-run eq nil "(eq 'a 'b)"
-run eq nil "(eq '(1 2) '(1 2))"
+run eq '()' "(eq 'a 'b)"
+run eq '()' "(eq '(1 2) '(1 2))"
 
 # Functions
 run lambda '<closure>' '(lambda a a)'
@@ -223,3 +223,100 @@ run letrec 3628800 '(define fn
                                             (* x (fn (dec x))))))
                         (dec . (lambda (x) (- x 1)))))
                     (fn 10)'
+
+# Macro
+run macro1 1 "(define list (lambda (a . b) (cons a b)))
+              (defmacro and         (expr . rest) (if rest (list 'if expr (cons 'and rest)) expr))
+              (and 1)"
+
+run macro2 '()' "(define list (lambda (a . b) (cons a b)))
+                 (defmacro and         (expr . rest) (if rest (list 'if expr (cons 'and rest)) expr))
+                 (and nil)"
+
+run macro3 '()' "(define list (lambda (a . b) (cons a b)))
+                 (defmacro and (expr . rest) (if rest (list 'if expr (cons 'and rest)) expr))
+                 (and nil 1)"
+
+run macro4 '()' "(define list (lambda (a . b) (cons a b)))
+                 (defmacro and (expr . rest) (if rest (list 'if expr (cons 'and rest)) expr))
+                 (and 1 nil)"
+
+run macro5 '()' "(define list (lambda (a . b) (cons a b)))
+                 (defmacro and (expr . rest) (if rest (list 'if expr (cons 'and rest)) expr))
+                 (and nil nil 1)"
+
+run macro6 '()' "(define list (lambda (a . b) (cons a b)))
+                 (defmacro and (expr . rest) (if rest (list 'if expr (cons 'and rest)) expr))
+                 (and 1 1 nil)"
+
+run macro7 1 "(define list (lambda (a . b) (cons a b)))
+              (defmacro or (expr . rest) (if rest (list 'if expr expr (cons 'or rest)) expr))
+              (or 1)"
+
+run macro8 '()' "(define list (lambda (a . b) (cons a b)))
+                 (defmacro or (expr . rest) (if rest (list 'if expr expr (cons 'or rest)) expr))
+                 (or nil)"
+
+run macro9 1 "(define list (lambda (a . b) (cons a b)))
+              (defmacro or (expr . rest) (if rest (list 'if expr expr (cons 'or rest)) expr))
+              (or nil 1)"
+
+run macro10 1 "(define list (lambda (a . b) (cons a b)))
+               (defmacro or (expr . rest) (if rest (list 'if expr expr (cons 'or rest)) expr))
+               (or 1 nil)"
+
+run macro11 1 "(define list (lambda (a . b) (cons a b)))
+               (defmacro or (expr . rest) (if rest (list 'if expr expr (cons 'or rest)) expr))
+               (or nil nil 1)"
+
+run macro12 1 "(define list (lambda (a . b) (cons a b)))
+               (defmacro or (expr . rest) (if rest (list 'if expr expr (cons 'or rest)) expr))
+               (or 1 nil nil)"
+
+run macro13 6 "(define list (lambda (a . b) (cons a b)))
+               (defmacro let1 (var val . body)
+                 (cons (cons 'lambda (cons (list var) body))
+                       (list val)))
+               (let1 x 3 (+ x x))"
+
+run macro14 8192 "(define list (lambda (a . b) (cons a b)))
+                  (defmacro progn (expr . rest) (list (cons 'lambda (cons (quote ()) (cons expr rest)))))
+                  (defmacro when (expr . body) (cons 'if (cons expr (list (cons 'progn body)))))
+                  (define x 3)
+                  ((lambda (x) (when t x)) 8192)"
+
+run macro15 3628800 "(define list (lambda (a . b) (cons a b)))
+                     (defmacro defun (sym arg . body)
+                       (cons 'define (cons sym (list (cons 'lambda (cons arg body))))))
+                     (defun fact (n) (if (= n 1) 1 (* n (fact (- n 1)))))
+                     (fact 10)"
+
+run macro16 11 "(define list (lambda (x . y) (cons x y)))
+                (defmacro let1 (var val . body)
+                  (cons (cons 'lambda (cons (list var) body))
+                	(list val)))
+                (defmacro or (expr . rest)
+                  (if rest
+                      (let1 var (gensym)
+                            (list 'let1 var expr
+                                  (list 'if var var (cons 'or rest))))
+                    expr))
+                    (or nil nil 11)"
+
+run macro17 '()' "(define list (lambda (x . y) (cons x y)))
+                  (defmacro let1 (var val . body)
+                    (cons (cons 'lambda (cons (list var) body))
+                  	(list val)))
+                  (defmacro or (expr . rest)
+                    (if rest
+                        (let1 var (gensym)
+                              (list 'let1 var expr
+                                    (list 'if var var (cons 'or rest))))
+                      expr))
+                  (or nil nil nil)"
+
+run macro18 5 "(define list (lambda (x . y) (cons x y)))
+               (defmacro progn (expr . rest)
+                 (list (cons 'lambda (cons (quote ()) (cons expr rest)))))
+               (progn 1 2 3 4 5)"
+
