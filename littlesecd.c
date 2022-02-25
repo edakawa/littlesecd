@@ -554,7 +554,7 @@ static void op_app(Obj *s, Obj *e, Obj *c, Obj *d) {
     vm(stack, env, cp, dump);
 }
 
-// wrong -> ((<macro> C' E') v . S) E (mapp . C) D => Nil (v . E') C' (S E C . D)
+// ((<macro> C' E') v . S) E (mapp . C) D => Nil (v . E') C' (S E C . D)
 static void op_mapp(Obj *s, Obj *e, Obj *c, Obj *d) {
     if (CAR(s)->type != TCELL || CAAR(s)->type != TSPECIAL ||
         CAAR(s)->subtype != TMACRO)
