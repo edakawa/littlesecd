@@ -1200,6 +1200,9 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
             return comp(x, env, cons(OP_PLN, code));
         }
         if (PRIM_GENSYM == head) {
+            // (gensym)
+            if (len != 1)
+                error("Malformed gensym");
             static int count = 0;
             char buf[10];
             snprintf(buf, sizeof(buf), "G__%d", count++);
