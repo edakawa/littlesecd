@@ -61,18 +61,18 @@ typedef struct Obj {
 
     // Object values
     union {
-	// Int
+        // Int
         int value;
-	// Cell
+        // Cell
         struct {
             struct Obj *car;
             struct Obj *cdr;
         };
-	// Symbol
+        // Symbol
         char name[1];
-	// SECD machine operator
+        // SECD machine operator
         Op *op;
-	// Subtype for special type
+        // Subtype for special type
         int subtype;
     };
 } Obj;
@@ -329,7 +329,7 @@ static Obj *read(void) {
             return NULL;
         if (c == ';') {
             skip_line();
-	    continue;
+            continue;
         }
         if (c == '(')
             return read_list();
@@ -338,7 +338,7 @@ static Obj *read(void) {
         if (c == '.')
             return Dot;
         if (c == '\'')
-	    return read_quote();
+            return read_quote();
         if (isdigit(c))
             return make_int(read_number(c - '0'));
         if (c == '-' && isdigit(peek()))
@@ -355,36 +355,36 @@ static void print(Obj *obj) {
         printf("%d", obj->value);
         return;
     case TCELL:
-	if (CAR(obj)->type == TSPECIAL && CAR(obj) == Closure) {
-	    printf("<closure>");
-	    return;
-	}
-	if (CAR(obj)->type == TSPECIAL && CAR(obj) == Macro) {
-	    printf("<macro>");
-	    return;
-	}
+        if (CAR(obj)->type == TSPECIAL && CAR(obj) == Closure) {
+            printf("<closure>");
+            return;
+        }
+        if (CAR(obj)->type == TSPECIAL && CAR(obj) == Macro) {
+            printf("<macro>");
+            return;
+        }
         printf("(");
         for (;;) {
-	    print(CAR(obj));
+            print(CAR(obj));
             if (CDR(obj) == Nil)
                 break;
             if (CDR(obj)->type != TCELL || (CADR(obj)->type == TSPECIAL &&
-	        CADR(obj) == Closure)) {
+                CADR(obj) == Closure)) {
                 printf(" . ");
-		if (CDR(obj)->type != TCELL)
-		    print(obj->cdr);
-		else
-		    printf("<closure>");
-		break;
+                if (CDR(obj)->type != TCELL)
+                    print(obj->cdr);
+                else
+                    printf("<closure>");
+                break;
             }
             if (CDR(obj)->type != TCELL || (CADR(obj)->type == TSPECIAL &&
-	        CADR(obj) == Macro)) {
+                CADR(obj) == Macro)) {
                 printf(" . ");
-		if (CDR(obj)->type != TCELL)
-		    print(obj->cdr);
-		else
-		    printf("<macro>");
-		break;
+                if (CDR(obj)->type != TCELL)
+                    print(obj->cdr);
+                else
+                    printf("<macro>");
+                break;
             }
             printf(" ");
             obj = obj->cdr;
@@ -395,8 +395,8 @@ static void print(Obj *obj) {
         printf("%s", obj->name);
         return;
     case TOPERATOR:
-	printf("<operator>");
-	return;
+        printf("<operator>");
+        return;
     case TSPECIAL:
         if (obj == Nil)
             printf("()");
@@ -413,12 +413,12 @@ static void print(Obj *obj) {
 static int list_length(Obj *list) {
     int len = 0;
     for (;;) {
-	if (list == Nil)
-	    return len;
-	if (list->type != TCELL)
+        if (list == Nil)
+            return len;
+        if (list->type != TCELL)
             error("list_length: cannot handle dotted list");
-	list = CDR(list);
-	len++;
+        list = CDR(list);
+        len++;
     }
 }
 
@@ -437,9 +437,9 @@ static Obj *find(Obj *sym) {
 
 static Obj *fetch(Obj *sym) {
     for (Obj *p = Opcodes; p != Nil; p = CDR(p)) {
-	Obj *bind = CAR(p);
-	if (sym == CAR(bind))
-	    return bind;
+        Obj *bind = CAR(p);
+        if (sym == CAR(bind))
+            return bind;
     }
     error("fetch: Unknown operator '%s'", sym->name);
     // NOTREACHED
@@ -533,9 +533,9 @@ static void op_args(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *n = CAR(c);             // n
     Obj *vs = Nil;
     for (int i = 0; i < n->value; i++) {
-	Obj *obj = CAR(s);       // v1
-	s = CDR(s);              // (v2 ... vN . S)
-	vs = cons(obj, vs);      // (list v1 ... vN)
+        Obj *obj = CAR(s);       // v1
+        s = CDR(s);              // (v2 ... vN . S)
+        vs = cons(obj, vs);      // (list v1 ... vN)
     }
     Obj *code = CDR(c);          // C
     Obj *stack = cons(vs, s);    // (vs . S)
@@ -602,9 +602,9 @@ static void op_sel(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *dump = cons(CDDR(c), d);    // (C . D)
     Obj *stack = CDR(s);             // S
     if (v != Nil && v != ATOM_NIL)
-	vm(stack, e, ct, dump);
+        vm(stack, e, ct, dump);
     else
-	vm(stack, e, cf, dump);
+        vm(stack, e, cf, dump);
 }
 
 // S E (join . ()) (C . D) => S E C D
@@ -636,7 +636,7 @@ static void op_add(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                             // x
     Obj *y = CADR(s);                            // y
     if (x->type != TINT || y->type != TINT)
-	error("+ takes only numbers");
+        error("+ takes only numbers");
     Obj *sum = make_int(y->value + x->value);
     Obj *stack = cons(sum, CDDR(s));             // ((y + x) . S)
     vm(stack, e, c, d);
@@ -647,7 +647,7 @@ static void op_sub(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                               // x
     Obj *y = CADR(s);                              // y
     if (x->type != TINT || y->type != TINT)
-	error("- takes only numbers");
+        error("- takes only numbers");
     Obj *diff = make_int(y->value - x->value);
     Obj *stack = cons(diff, CDDR(s));              // ((y - x) . S)
     vm(stack, e, c, d);
@@ -658,7 +658,7 @@ static void op_mul(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                               // x
     Obj *y = CADR(s);                              // y
     if (x->type != TINT || y->type != TINT)
-	error("* takes only numbers");
+        error("* takes only numbers");
     Obj *prod = make_int(y->value * x->value);
     Obj *stack = cons(prod, CDDR(s));              // ((y * x) . S)
     vm(stack, e, c, d);
@@ -669,7 +669,7 @@ static void op_div(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                               // x
     Obj *y = CADR(s);                              // y
     if (x->type != TINT || y->type != TINT)
-	error("/ takes only numbers");
+        error("/ takes only numbers");
     if (x->value == 0)
         error("division by zero");
     Obj *quot = make_int(y->value / x->value);
@@ -682,7 +682,7 @@ static void op_mod(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                               // x
     Obj *y = CADR(s);                              // y
     if (x->type != TINT || y->type != TINT)
-	error("% takes only numbers");
+        error("% takes only numbers");
     if (x->value == 0)
         error("division by zero");
     Obj *quot;
@@ -709,7 +709,7 @@ static void op_cons(Obj *s, Obj *e, Obj *c, Obj *d) {
 static void op_car(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *cell = CAR(s);
     if (cell->type != TCELL)
-	error("Malformed car");
+        error("Malformed car");
     Obj *x = CAR(cell);              // x
     Obj *stack = cons(x, CDR(s));    // (x . S)
     vm(stack, e, c, d);
@@ -719,7 +719,7 @@ static void op_car(Obj *s, Obj *e, Obj *c, Obj *d) {
 static void op_cdr(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *cell = CAR(s);
     if (cell->type != TCELL)
-	error("Malformed cdr");
+        error("Malformed cdr");
     Obj *y = CDR(cell);              // y
     Obj *stack = cons(y, CDR(s));    // (y . S)
     vm(stack, e, c, d);
@@ -730,7 +730,7 @@ static void op_lt(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                                // x
     Obj *y = CADR(s);                               // y
     if (x->type != TINT || y->type != TINT)
-	error("< takes only numbers");
+        error("< takes only numbers");
     Obj *v = (y->value < x->value) ? True : Nil;    // y<x
     Obj *stack = cons(v, CDDR(s));                  // (y<x . S)
     vm(stack, e, c, d);
@@ -741,7 +741,7 @@ static void op_le(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                                // x
     Obj *y = CADR(s);                               // y
     if (x->type != TINT || y->type != TINT)
-	error("< takes only numbers");
+        error("< takes only numbers");
     Obj *v = (y->value <= x->value) ? True : Nil;   // y<=x
     Obj *stack = cons(v, CDDR(s));                  // (y<=x . S)
     vm(stack, e, c, d);
@@ -752,7 +752,7 @@ static void op_neq(Obj *s, Obj *e, Obj *c, Obj *d) {
     Obj *x = CAR(s);                                // x
     Obj *y = CADR(s);                               // y
     if (x->type != TINT || y->type != TINT)
-	error("= takes only numbers");
+        error("= takes only numbers");
     Obj *v = (y->value == x->value) ? True : Nil;   // y=x
     Obj *stack = cons(v, CDDR(s));                  // (y=x . S)
     vm(stack, e, c, d);
@@ -808,34 +808,34 @@ static bool is_macro(Obj *sym) {
 static Obj *position_var(Obj *sym, Obj *ls) {
     int i = 0;
     for (;;) {
-	if (ls == Nil)
-	    return Nil;
-	if (ls->type == TSYMBOL)
-	    return (ls == sym) ? make_int(-(i + 1)) : Nil;
-	if (sym == CAR(ls))
-	    return make_int(i);
-	i++;
-	ls = CDR(ls);
+        if (ls == Nil)
+            return Nil;
+        if (ls->type == TSYMBOL)
+            return (ls == sym) ? make_int(-(i + 1)) : Nil;
+        if (sym == CAR(ls))
+            return make_int(i);
+        i++;
+        ls = CDR(ls);
     }
 }
 
 static Obj *location(Obj *sym, Obj *ls) {
     int i = 0;
     for (;;) {
-	if (ls == Nil)
-	    return Nil;
-	Obj *j = position_var(sym, CAR(ls));
-	if (j->type == TINT)
-	    return cons(make_int(i), j);
-	i++;
-	ls = CDR(ls);
+        if (ls == Nil)
+            return Nil;
+        Obj *j = position_var(sym, CAR(ls));
+        if (j->type == TINT)
+            return cons(make_int(i), j);
+        i++;
+        ls = CDR(ls);
     }
 }
 
 static Obj *length(Obj *expr) {
     int i = 0;
     for (Obj *obj = expr; obj != Nil; obj = CDR(obj))
-	i++;
+        i++;
     return make_int(i);
 }
 
@@ -856,14 +856,14 @@ static Obj *symbol_location(Obj *sym, Obj *env, Obj *code) {
 
 static Obj *complis(Obj *expr, Obj *env, Obj *code) {
     if (expr == Nil)
-	return code;
+        return code;
     else
-	return comp(CAR(expr), env, complis(CDR(expr), env, code));
+        return comp(CAR(expr), env, complis(CDR(expr), env, code));
 }
 
 static Obj *compmac(Obj *expr, Obj *code) {
     if (expr == Nil)
-	return code;
+        return code;
     else {
         Obj *sym = CAR(expr);
         return cons(OP_LDC, cons(sym, compmac(CDR(expr), code)));
@@ -879,11 +879,11 @@ static Obj *apply_macro(Obj *sym, Obj *expr) {
 
 static Obj *comp_body(Obj *body, Obj *env, Obj *code) {
     if (CDR(body) == Nil)
-	return comp(CAR(body), env, code);
+        return comp(CAR(body), env, code);
     else
-	return comp(CAR(body),
-		    env,
-		    cons(OP_POP, comp_body(CDR(body), env, code)));
+        return comp(CAR(body),
+                    env,
+                    cons(OP_POP, comp_body(CDR(body), env, code)));
 }
 
 static Obj *compile(Obj *expr);
@@ -897,105 +897,105 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
     Obj *head;
     switch (expr->type) {
     case TINT:
-	return cons(OP_LDC, cons(expr, code));
+        return cons(OP_LDC, cons(expr, code));
     case TSYMBOL:
-	return symbol_location(expr, env, code);
+        return symbol_location(expr, env, code);
     case TCELL:
         len = list_length(expr);
-	head = CAR(expr);
-	if (SF_QUOTE == head) {
-	    // 'expr
-	    if (len != 2)
-		error("Malformed quote");
+        head = CAR(expr);
+        if (SF_QUOTE == head) {
+            // 'expr
+            if (len != 2)
+                error("Malformed quote");
             return cons(OP_LDC, cons(CADR(expr), code));
-	}
-	if (SF_DEFINE == head) {
-	    // (define sym expr)
-	    if (len != 3 || CADR(expr)->type != TSYMBOL)
-		error("Malformed define");
-	    Obj *sym = CADR(expr);
-	    Obj *val = CADDR(expr);
-	    return comp(val, env, cons(OP_DEF, cons(sym, code)));
-	}
-	if (SF_IF == head) {
-	    if (len < 3 || 4 < len)
-		error("Malformed if");
+        }
+        if (SF_DEFINE == head) {
+            // (define sym expr)
+            if (len != 3 || CADR(expr)->type != TSYMBOL)
+                error("Malformed define");
+            Obj *sym = CADR(expr);
+            expr = CADDR(expr);
+            return comp(expr, env, cons(OP_DEF, cons(sym, code)));
+        }
+        if (SF_IF == head) {
+            if (len < 3 || 4 < len)
+                error("Malformed if");
             Obj *t_clause, *f_clause;
-	    t_clause = comp(CADDR(expr), env, cons(OP_JOIN, Nil));
-	    if (CDDDR(expr) == Nil)
-		f_clause = cons(OP_LDG, cons(ATOM_NIL, cons(OP_JOIN, Nil)));
-	    else
-		f_clause = comp(CADDDR(expr), env, cons(OP_JOIN, Nil));
-	    return comp(CADR(expr), env, cons(OP_SEL, cons(t_clause,
-	        cons(f_clause, code))));
-	}
-	if (SF_LAMBDA == head) {
-	    // (lambda (vars) body ...)
-	    if (len < 3 || CDDR(expr)->type != TCELL)
-		error("Malformed lambda");
-	    for (Obj *p = CADR(expr); p->type == TCELL; p = CDR(p))
-		if (CAR(p)->type != TSYMBOL)
-		    error("lambda: Parameter must be a symbol");
-	    Obj *body = CDDR(expr);               // body
-	    Obj *vars = cons(CADR(expr), env);    // vars
-	    Obj *t_code = cons(OP_RTN, Nil);      // (rtn . Nil)
-	    return cons(OP_LDF, cons(comp_body(body, vars, t_code), code));
-	}
-	if (SF_LET == head) {
-	    // (let body (var1 . expr1) (var2 . expr2) ...)
-	    if (len == 1)
-		error("Malformed let");
-	    if (len == 2)
-		return cons(OP_LDG, cons(ATOM_NIL, code));
-	    Obj *body = CADR(expr);
-	    Obj *bind = CDDR(expr);
-	    Obj *vars = Nil;
-	    Obj *exprs = Nil;
-	    for (Obj *obj = bind; obj != Nil; obj = CDR(obj)) {
+            t_clause = comp(CADDR(expr), env, cons(OP_JOIN, Nil));
+            if (CDDDR(expr) == Nil)
+                f_clause = cons(OP_LDG, cons(ATOM_NIL, cons(OP_JOIN, Nil)));
+            else
+                f_clause = comp(CADDDR(expr), env, cons(OP_JOIN, Nil));
+            return comp(CADR(expr), env, cons(OP_SEL, cons(t_clause,
+                cons(f_clause, code))));
+        }
+        if (SF_LAMBDA == head) {
+            // (lambda (vars) body ...)
+            if (len < 3 || CDDR(expr)->type != TCELL)
+                error("Malformed lambda");
+            for (Obj *p = CADR(expr); p->type == TCELL; p = CDR(p))
+                if (CAR(p)->type != TSYMBOL)
+                    error("lambda: Parameter must be a symbol");
+            Obj *body = CDDR(expr);               // body
+            Obj *vars = cons(CADR(expr), env);    // vars
+            Obj *t_code = cons(OP_RTN, Nil);      // (rtn . Nil)
+            return cons(OP_LDF, cons(comp_body(body, vars, t_code), code));
+        }
+        if (SF_LET == head) {
+            // (let body (var1 . expr1) (var2 . expr2) ...)
+            if (len == 1)
+                error("Malformed let");
+            if (len == 2)
+                return cons(OP_LDG, cons(ATOM_NIL, code));
+            Obj *body = CADR(expr);
+            Obj *bind = CDDR(expr);
+            Obj *vars = Nil;
+            Obj *exprs = Nil;
+            for (Obj *obj = bind; obj != Nil; obj = CDR(obj)) {
                 if (CAR(obj)->type != TCELL)
                     error("Malformed let");
-		Obj *v = CAAR(obj);
-		Obj *e = CDAR(obj);
-		if (v->type != TSYMBOL)
-		    error("let: Parameter must be a symbol");
-		vars = cons(v, vars);
-		exprs = cons(e, exprs);
-	    }
-	    Obj *lambda = cons(cons(SF_LAMBDA, cons(vars, cons(body, Nil))),
-	        exprs);
-	    return comp(lambda, env, code);
-	}
-	if (SF_LETREC == head) {
-	    // (letrec body (var1 . expr1) (var2 . expr2) ...)
-	    if (len == 1)
-		error("Malformed letrec");
-	    if (len == 2)
-		return cons(OP_LDG, cons(ATOM_NIL, code));
-	    Obj *body = CADR(expr);
-	    Obj *bind = CDDR(expr);
-	    Obj *vars = Nil;
-	    Obj *exprs = Nil;
-	    for (Obj *obj = bind; obj != Nil; obj = CDR(obj)) {
+                Obj *v = CAAR(obj);
+                Obj *e = CDAR(obj);
+                if (v->type != TSYMBOL)
+                    error("let: Parameter must be a symbol");
+                vars = cons(v, vars);
+                exprs = cons(e, exprs);
+            }
+            Obj *lambda = cons(cons(SF_LAMBDA, cons(vars, cons(body, Nil))),
+                exprs);
+            return comp(lambda, env, code);
+        }
+        if (SF_LETREC == head) {
+            // (letrec body (var1 . expr1) (var2 . expr2) ...)
+            if (len == 1)
+                error("Malformed letrec");
+            if (len == 2)
+                return cons(OP_LDG, cons(ATOM_NIL, code));
+            Obj *body = CADR(expr);
+            Obj *bind = CDDR(expr);
+            Obj *vars = Nil;
+            Obj *exprs = Nil;
+            for (Obj *obj = bind; obj != Nil; obj = CDR(obj)) {
                 if (CAR(obj)->type != TCELL)
                     error("Malformed letrec");
-		Obj *v = CAAR(obj);
-		Obj *e = CDAR(obj);
-		if (v->type != TSYMBOL)
-		    error("letrec: Parameter must be a symbol");
-		vars = cons(v, vars);
-		exprs = cons(e, exprs);
-	    }
-	    return cons(OP_DUM,
-			complis(exprs,
-				cons(vars, env),
-				cons(OP_ARGS,
-				     cons(length(exprs),
-					  cons(OP_LDF,
-					       cons(comp(body,
-							 cons(vars, env),
-							 cons(OP_RTN, Nil)),
-						    cons(OP_RAP, code)))))));
-	}
+                Obj *v = CAAR(obj);
+                Obj *e = CDAR(obj);
+                if (v->type != TSYMBOL)
+                    error("letrec: Parameter must be a symbol");
+                vars = cons(v, vars);
+                exprs = cons(e, exprs);
+            }
+            return cons(OP_DUM,
+                        complis(exprs,
+                                cons(vars, env),
+                                cons(OP_ARGS,
+                                     cons(length(exprs),
+                                          cons(OP_LDF,
+                                               cons(comp(body,
+                                                         cons(vars, env),
+                                                         cons(OP_RTN, Nil)),
+                                                    cons(OP_RAP, code)))))));
+        }
         if (SF_DEFMACRO == head) {
             // (defmacro sym (args) body)
             if (len < 3 || CADR(expr)->type != TSYMBOL ||
@@ -1009,187 +1009,187 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
                 cons(OP_DEF, cons(sym, code))));
             return ret;
         }
-	if (PRIM_CONS == head) {
-	    // (cons expr1 expr2)
-	    if (len != 3)
-		error("Malformed cons");
-	    Obj *expr1 = CADR(expr);
-	    Obj *expr2 = CADDR(expr);
-	    return comp(expr1, env, comp(expr2, env, cons(OP_CONS, code)));
-	}
-	if (PRIM_CAR == head) {
-	    // (car <cell>)
-	    if (len != 2)
-		error("Malformed car");
-	    return comp(CADR(expr), env, cons(OP_CAR, code));
-	}
-	if (PRIM_CDR == head) {
-	    // (cdr <cell>)
-	    if (len != 2)
-		error("Malformed cdr");
-	    return comp(CADR(expr), env, cons(OP_CDR, code));
-	}
-	if (PRIM_ADD == head) {
-	    // (+ x y z ...)
-	    if (len == 1) {
-		Obj *id = make_int(0);
-		return cons(OP_LDC, cons(id, code));
-	    }
-	    Obj *nums = CDR(expr);
-	    if (len == 2) {
-		Obj *term = CAR(nums);
-		if (term->type == TINT)
-		    return cons(OP_LDC, cons(term, code));
-		return term_location(term, env, code);
-	    }
-	    if (len >= 3) {
-		Obj *x = CAR(nums);
-		Obj *y = CADR(nums);
-		Obj *tail = cons(OP_ADD, Nil);
-		Obj *ret = term_location(y, env, tail);
-		ret = term_location(x, env, ret);
-		for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
-		    Obj *tmp = cons(OP_ADD, Nil);
-		    CDR(tail) = term_location(CAR(rest), env, tmp);
-		    tail = tmp;
-		}
-		CDR(tail) = code;
-		return ret;
-	    }
-	}
-	if (PRIM_SUB == head) {
-	    // (- x y z ...)
-	    if (len == 1)
-		error("Malformed -");
-	    Obj *nums = CDR(expr);
-	    if (len == 2) {
-		Obj *term = CAR(nums);
-		if (term->type == TINT)
-		    return cons(OP_LDC, cons(make_int(-term->value), code));
-		Obj *id = make_int(-1);
-		return term_location(term, env, cons(OP_LDC, cons(id,
+        if (PRIM_CONS == head) {
+            // (cons expr1 expr2)
+            if (len != 3)
+                error("Malformed cons");
+            Obj *expr1 = CADR(expr);
+            Obj *expr2 = CADDR(expr);
+            return comp(expr1, env, comp(expr2, env, cons(OP_CONS, code)));
+        }
+        if (PRIM_CAR == head) {
+            // (car <cell>)
+            if (len != 2)
+                error("Malformed car");
+            return comp(CADR(expr), env, cons(OP_CAR, code));
+        }
+        if (PRIM_CDR == head) {
+            // (cdr <cell>)
+            if (len != 2)
+                error("Malformed cdr");
+            return comp(CADR(expr), env, cons(OP_CDR, code));
+        }
+        if (PRIM_ADD == head) {
+            // (+ x y z ...)
+            if (len == 1) {
+                Obj *id = make_int(0);
+                return cons(OP_LDC, cons(id, code));
+            }
+            Obj *nums = CDR(expr);
+            if (len == 2) {
+                Obj *term = CAR(nums);
+                if (term->type == TINT)
+                    return cons(OP_LDC, cons(term, code));
+                return term_location(term, env, code);
+            }
+            if (len >= 3) {
+                Obj *x = CAR(nums);
+                Obj *y = CADR(nums);
+                Obj *tail = cons(OP_ADD, Nil);
+                Obj *ret = term_location(y, env, tail);
+                ret = term_location(x, env, ret);
+                for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
+                    Obj *tmp = cons(OP_ADD, Nil);
+                    CDR(tail) = term_location(CAR(rest), env, tmp);
+                    tail = tmp;
+                }
+                CDR(tail) = code;
+                return ret;
+            }
+        }
+        if (PRIM_SUB == head) {
+            // (- x y z ...)
+            if (len == 1)
+                error("Malformed -");
+            Obj *nums = CDR(expr);
+            if (len == 2) {
+                Obj *term = CAR(nums);
+                if (term->type == TINT)
+                    return cons(OP_LDC, cons(make_int(-term->value), code));
+                Obj *id = make_int(-1);
+                return term_location(term, env, cons(OP_LDC, cons(id,
                     cons(OP_MUL, code))));
-	    }
-	    if (len >= 3) {
-		Obj *x = CAR(nums);
-		Obj *y = CADR(nums);
-		Obj *tail = cons(OP_SUB, Nil);
-		Obj *ret = term_location(y, env, tail);
-		ret = term_location(x, env, ret);
-		for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
-		    Obj *tmp = cons(OP_SUB, Nil);
-		    CDR(tail) = term_location(CAR(rest), env, tmp);
-		    tail = tmp;
-		}
-		CDR(tail) = code;
-		return ret;
-	    }
-	}
-	if (PRIM_MUL == head) {
-	    // (* x y z ...)
-	    if (len == 1) {
-		Obj *id = make_int(1);
-		return cons(OP_LDC, cons(id, code));
-	    }
-	    Obj *nums = CDR(expr);
-	    if (len == 2) {
-		Obj *term = CAR(nums);
-		if (term->type == TINT)
-		    return cons(OP_LDC, cons(term, code));
-		return term_location(term, env, code);
-	    }
-	    if (len >= 3) {
-		Obj *x = CAR(nums);
-		Obj *y = CADR(nums);
-		Obj *tail = cons(OP_MUL, Nil);
-		Obj *ret = term_location(y, env, tail);
-		ret = term_location(x, env, ret);
-		for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
-		    Obj *tmp = cons(OP_MUL, Nil);
-		    CDR(tail) = term_location(CAR(rest), env, tmp);
-		    tail = tmp;
-		}
-		CDR(tail) = code;
-		return ret;
-	    }
-	}
-	if (PRIM_DIV == head) {
-	    // (/ x y z ...)
-	    if (len == 1)
-		error("Malformed /");
-	    Obj *nums = CDR(expr);
-	    if (len == 2) {
-		Obj *term = CAR(nums);
-		Obj *ret = cons(OP_LDC, cons(make_int(1), Nil));
-		if (term->type == TINT) {
-		    CDDR(ret) = cons(OP_LDC, cons(term, cons(OP_DIV, code)));
-		    return ret;
-		}
-		CDDR(ret) = term_location(term, env, cons(OP_DIV, code));
-		return ret;
-	    }
-	    if (len >= 3) {
-		Obj *x = CAR(nums);
-		Obj *y = CADR(nums);
-		Obj *tail = cons(OP_DIV, Nil);
-		Obj *ret = term_location(y, env, tail);
-		ret = term_location(x, env, ret);
-		for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
-		    Obj *tmp = cons(OP_DIV, Nil);
-		    CDR(tail) = term_location(CAR(rest), env, tmp);
-		    tail = tmp;
-		}
-		CDR(tail) = code;
-		return ret;
-	    }
-	}
-	if (PRIM_MOD == head) {
-	    // (% x y)
-	    if (len != 3)
-		error("Malformed %");
-	    Obj *x = CADR(expr);
-	    Obj *y = CADDR(expr);
-	    return comp(x, env, comp(y, env, cons(OP_MOD, code)));
-	}
-	if (PRIM_LT == head) {
-	    // (< x y)
-	    if (len != 3)
-		error("Malformed <");
-	    Obj *x = CADR(expr);
-	    Obj *y = CADDR(expr);
-	    return comp(x, env, comp(y, env, cons(OP_LT, code)));
-	}
-	if (PRIM_LE == head) {
-	    // (<= x y)
-	    if (len != 3)
-		error("Malformed <=");
-	    Obj *x = CADR(expr);
-	    Obj *y = CADDR(expr);
-	    return comp(x, env, comp(y, env, cons(OP_LE, code)));
-	}
-	if (PRIM_NEQ == head) {
-	    // (= x y)
-	    if (len != 3)
-		error("Malformed =");
-	    Obj *x = CADR(expr);
-	    Obj *y = CADDR(expr);
-	    return comp(x, env, comp(y, env, cons(OP_NEQ, code)));
-	}
-	if (PRIM_ATOM == head) {
-	    // (atom x)
-	    if (len != 2)
-		error("Malformed atom");
-	    Obj *x = CADR(expr);
-	    return comp(x, env, cons(OP_ATOM, code));
-	}
-	if (PRIM_EQ == head) {
-	    // (eq x y)
-	    if (len != 3)
-		error("Malformed eq");
-	    Obj *x = CADR(expr);
-	    Obj *y = CADDR(expr);
-	    return comp(x, env, comp(y, env, cons(OP_EQ, code)));
-	}
+            }
+            if (len >= 3) {
+                Obj *x = CAR(nums);
+                Obj *y = CADR(nums);
+                Obj *tail = cons(OP_SUB, Nil);
+                Obj *ret = term_location(y, env, tail);
+                ret = term_location(x, env, ret);
+                for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
+                    Obj *tmp = cons(OP_SUB, Nil);
+                    CDR(tail) = term_location(CAR(rest), env, tmp);
+                    tail = tmp;
+                }
+                CDR(tail) = code;
+                return ret;
+            }
+        }
+        if (PRIM_MUL == head) {
+            // (* x y z ...)
+            if (len == 1) {
+                Obj *id = make_int(1);
+                return cons(OP_LDC, cons(id, code));
+            }
+            Obj *nums = CDR(expr);
+            if (len == 2) {
+                Obj *term = CAR(nums);
+                if (term->type == TINT)
+                    return cons(OP_LDC, cons(term, code));
+                return term_location(term, env, code);
+            }
+            if (len >= 3) {
+                Obj *x = CAR(nums);
+                Obj *y = CADR(nums);
+                Obj *tail = cons(OP_MUL, Nil);
+                Obj *ret = term_location(y, env, tail);
+                ret = term_location(x, env, ret);
+                for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
+                    Obj *tmp = cons(OP_MUL, Nil);
+                    CDR(tail) = term_location(CAR(rest), env, tmp);
+                    tail = tmp;
+                }
+                CDR(tail) = code;
+                return ret;
+            }
+        }
+        if (PRIM_DIV == head) {
+            // (/ x y z ...)
+            if (len == 1)
+                error("Malformed /");
+            Obj *nums = CDR(expr);
+            if (len == 2) {
+                Obj *term = CAR(nums);
+                Obj *ret = cons(OP_LDC, cons(make_int(1), Nil));
+                if (term->type == TINT) {
+                    CDDR(ret) = cons(OP_LDC, cons(term, cons(OP_DIV, code)));
+                    return ret;
+                }
+                CDDR(ret) = term_location(term, env, cons(OP_DIV, code));
+                return ret;
+            }
+            if (len >= 3) {
+                Obj *x = CAR(nums);
+                Obj *y = CADR(nums);
+                Obj *tail = cons(OP_DIV, Nil);
+                Obj *ret = term_location(y, env, tail);
+                ret = term_location(x, env, ret);
+                for (Obj *rest = CDDR(nums); rest != Nil; rest = CDR(rest)) {
+                    Obj *tmp = cons(OP_DIV, Nil);
+                    CDR(tail) = term_location(CAR(rest), env, tmp);
+                    tail = tmp;
+                }
+                CDR(tail) = code;
+                return ret;
+            }
+        }
+        if (PRIM_MOD == head) {
+            // (% x y)
+            if (len != 3)
+                error("Malformed %");
+            Obj *x = CADR(expr);
+            Obj *y = CADDR(expr);
+            return comp(x, env, comp(y, env, cons(OP_MOD, code)));
+        }
+        if (PRIM_LT == head) {
+            // (< x y)
+            if (len != 3)
+                error("Malformed <");
+            Obj *x = CADR(expr);
+            Obj *y = CADDR(expr);
+            return comp(x, env, comp(y, env, cons(OP_LT, code)));
+        }
+        if (PRIM_LE == head) {
+            // (<= x y)
+            if (len != 3)
+                error("Malformed <=");
+            Obj *x = CADR(expr);
+            Obj *y = CADDR(expr);
+            return comp(x, env, comp(y, env, cons(OP_LE, code)));
+        }
+        if (PRIM_NEQ == head) {
+            // (= x y)
+            if (len != 3)
+                error("Malformed =");
+            Obj *x = CADR(expr);
+            Obj *y = CADDR(expr);
+            return comp(x, env, comp(y, env, cons(OP_NEQ, code)));
+        }
+        if (PRIM_ATOM == head) {
+            // (atom x)
+            if (len != 2)
+                error("Malformed atom");
+            Obj *x = CADR(expr);
+            return comp(x, env, cons(OP_ATOM, code));
+        }
+        if (PRIM_EQ == head) {
+            // (eq x y)
+            if (len != 3)
+                error("Malformed eq");
+            Obj *x = CADR(expr);
+            Obj *y = CADDR(expr);
+            return comp(x, env, comp(y, env, cons(OP_EQ, code)));
+        }
         if (PRIM_PRINTLN == head) {
             // (println x)
             if (len != 2)
@@ -1253,7 +1253,7 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
                                           env,
                                           cons(OP_APP, code)))));
     default:
-	error("comp: Unkown error");
+        error("comp: Unkown error");
         // NOTREACHED
         return Nil;
     }
@@ -1336,8 +1336,8 @@ int main(void) {
 
     Obj *s, *e, *c, *d;
     for (;;) {
-	s = e = d = Nil;
-	printf("\n> ");
+        s = e = d = Nil;
+        printf("\n> ");
         Obj *expr = read();
         if (!expr)
             return 0;
@@ -1345,8 +1345,8 @@ int main(void) {
             error("Stray close parenthesis");
         if (expr == Dot)
             error("Stray dot");
-	c = compile(expr);
-	vm(s, e, c, d);
+        c = compile(expr);
+        vm(s, e, c, d);
         print(Result);
         putchar('\n');
     }
