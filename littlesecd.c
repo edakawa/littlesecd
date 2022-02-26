@@ -918,6 +918,7 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
             return comp(expr, env, cons(OP_DEF, cons(sym, code)));
         }
         if (SF_IF == head) {
+            // (if cond t_clause f_clause)
             if (len < 3 || 4 < len)
                 error("Malformed if");
             Obj *t_clause, *f_clause;
@@ -926,7 +927,8 @@ static Obj *comp(Obj *expr, Obj *env, Obj *code) {
                 f_clause = cons(OP_LDG, cons(ATOM_NIL, cons(OP_JOIN, Nil)));
             else
                 f_clause = comp(CADDDR(expr), env, cons(OP_JOIN, Nil));
-            return comp(CADR(expr), env, cons(OP_SEL, cons(t_clause,
+            Obj *cond = CADR(expr);
+            return comp(cond, env, cons(OP_SEL, cons(t_clause,
                 cons(f_clause, code))));
         }
         if (SF_LAMBDA == head) {
